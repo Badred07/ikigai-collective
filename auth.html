@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login / Register — Ikigai Collective</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <div class="container navbar">
+    <a class="brand" href="index.html">Ikigai Collective</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="index.html#products">Shop</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <section class="container" style="padding:3rem 0">
+    <div class="admin-modal" style="max-width:560px;margin:0 auto;padding:2rem;">
+      <h2 style="margin-bottom:1rem">Account</h2>
+      <p style="color:var(--muted);margin-bottom:1rem">Create an account or sign in to sync your cart and orders.</p>
+      <form id="signup" style="display:grid;gap:0.75rem;margin-bottom:1rem">
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Password (min 6)" required />
+        <button class="btn cta-button" type="submit">Create Account</button>
+      </form>
+
+      <hr style="margin:1rem 0;border:none;border-top:1px solid var(--border)" />
+
+      <form id="signin" style="display:grid;gap:0.75rem">
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Password" required />
+        <button class="btn cta-button" type="submit">Sign In</button>
+      </form>
+
+      <p style="margin-top:1rem;color:var(--muted)">After signing in you'll be redirected back to the shop.</p>
+    </div>
+  </section>
+</main>
+<script type="module">
+import * as fb from './firebase.js';
+
+async function init() {
+  await fb.autoInit();
+
+  const signup = document.getElementById('signup');
+  const signin = document.getElementById('signin');
+
+  signup.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const email = form.email.value.trim();
+    const password = form.password.value;
+    try {
+      await fb.signUp(email, password);
+      alert('Account created. Redirecting to shop.');
+      location.href = 'index.html';
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Failed creating account.');
+    }
+  });
+
+  signin.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const email = form.email.value.trim();
+    const password = form.password.value;
+    try {
+      await fb.signIn(email, password);
+      alert('Signed in. Redirecting to shop.');
+      location.href = 'index.html';
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Failed signing in.');
+    }
+  });
+
+  fb.onAuthChanged(user => {
+    if (user) {
+      // already signed in
+      console.log('signed in as', user.email);
+    }
+  });
+}
+
+init();
+</script>
+</body>
+</html>
