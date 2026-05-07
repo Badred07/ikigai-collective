@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dragon Essence Tee — Ikigai Collective</title>
+  <meta name="description" content="Dragon Essence Tee — premium anime tee with museum-grade print.">
+  <meta property="og:title" content="Dragon Essence Tee — Ikigai Collective">
+  <meta property="og:description" content="Fearless design meets superior comfort. Hand-enhanced details on premium cotton.">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1520975862198-8ff6a8b6e542?auto=format&fit=crop&w=1200&q=80">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="container navbar">
+    <a class="brand" href="index.html">Ikigai Collective</a>
+    <nav>
+      <a href="index.html#home">Home</a>
+      <a href="index.html#products">Shop</a>
+      <a href="index.html#about">About</a>
+      <a href="index.html#newsletter">Subscribe</a>
+      <a href="auth.html">Account</a>
+      <a href="dashboard.html">Dashboard</a>
+    </nav>
+    <button class="cart-button" type="button">Cart <span class="cart-count">0</span></button>
+  </div>
+</header>
+
+<main>
+  <section class="container product-detail">
+    <div class="product-grid">
+      <div class="product-media">
+        <img src="https://images.unsplash.com/photo-1520975862198-8ff6a8b6e542?auto=format&fit=crop&w=1200&q=80" alt="Dragon Essence Tee">
+      </div>
+      <div class="product-info">
+        <h1>Dragon Essence Tee</h1>
+        <p class="product-subtitle">Premium Comfort Edition</p>
+        <p class="collection-label">Collection: <span class="collection-name">Dragon Ball</span></p>
+        <p class="price">200.00 DH</p>
+        <p>Fearless design meets superior comfort. Hand-enhanced details on 100% premium cotton with reinforced seams for lasting quality.</p>
+        <div class="product-features">
+          <span>✓ Premium Cotton</span>
+          <span>✓ Fade-Resistant Print</span>
+          <span>✓ All Sizes Available</span>
+        </div>
+        <div class="product-options">
+          <label>Size:
+            <select name="size" aria-label="Size">
+              <option value="S">S</option>
+              <option value="M" selected>M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+              <option value="XXL">XXL</option>
+            </select>
+          </label>
+          <label>Color:
+            <select name="color" aria-label="Color">
+              <option value="Black">Black</option>
+              <option value="White">White</option>
+              <option value="Pink">Pink</option>
+              <option value="Purple">Purple</option>
+            </select>
+          </label>
+        </div>
+        <div style="margin-top:1rem">
+          <button class="btn cta-button add-to-cart" data-id="dragon" data-name="Dragon Essence Tee" data-price="200.00" data-collections="dragon-ball">Add to Cart</button>
+        </div>
+        <p style="margin-top:1rem"><a href="index.html">← Back to shop</a></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="footer-bottom">
+        <p>© 2026 www.ikigai_collective.com • Premium Anime Fashion</p>
+        <div class="footer-links" style="margin:0.5rem 0">
+          <a href="contact.html">Contact</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>
+        </div>
+        <button id="owner-button" class="owner-button" type="button" aria-label="Owner Edit">Owner</button>
+    </div>
+  </div>
+</footer>
+
+<div class="cart-sidebar" id="cart-sidebar" role="region" aria-label="Shopping Cart">
+  <div class="cart-panel">
+    <div class="cart-header">
+      <h3 id="cart-title">Your Cart</h3>
+      <button class="btn secondary-button cart-close" type="button">✕</button>
+    </div>
+    <div class="cart-list"></div>
+    <div class="cart-footer">
+      <div class="payment-options">
+        <label><input type="radio" name="payment-method" value="cod" checked> Cash on Delivery</label>
+        <label><input type="radio" name="payment-method" value="online"> Pay Online</label>
+      </div>
+      <div class="cart-summary">
+        <span>Total</span>
+        <strong class="cart-total">0.00 DH</strong>
+      </div>
+      <button class="btn cta-button checkout-button" type="button">Checkout</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>

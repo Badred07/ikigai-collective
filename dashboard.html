@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dashboard — Ikigai Collective</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <div class="container navbar">
+    <a class="brand" href="index.html">Ikigai Collective</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="auth.html">Account</a>
+    </nav>
+    <div>
+      <button id="signout" class="btn secondary-button">Sign out</button>
+    </div>
+  </div>
+</header>
+<main>
+  <section class="container" style="padding:3rem 0">
+    <div class="section-header">
+      <p class="section-title">Owner</p>
+      <h2>Management Dashboard</h2>
+      <p style="color:var(--muted)">View recent orders and manage custom products. Requires signing in.</p>
+    </div>
+
+    <div class="dashboard-grid" style="display:grid;grid-template-columns:1fr 380px;gap:1.5rem;">
+      <div class="panel" style="background:var(--surface);padding:1rem;border-radius:10px;border:1px solid var(--border);">
+        <h3>Recent Orders</h3>
+        <div id="orders-list" style="margin-top:1rem;display:grid;gap:0.5rem"></div>
+      </div>
+
+      <div class="panel" style="background:var(--surface);padding:1rem;border-radius:10px;border:1px solid var(--border);">
+        <h3>Custom Products</h3>
+        <div id="custom-list" style="margin-top:1rem;display:grid;gap:0.5rem"></div>
+      </div>
+    </div>
+  </section>
+</main>
+<script type="module">
+import * as fb from './firebase.js';
+
+async function init() {
+  const ok = await fb.autoInit();
+  if (!ok) {
+    document.getElementById('orders-list').innerHTML = '<p style="color:var(--muted)">Firebase not configured. See firebase-config.example.js</p>';
+    return;
+  }
+
+  fb.onAuthChanged(async (user) => {
+    if (!user) {
+      alert('Please sign in to access the dashboard.');
+      location.href = 'auth.html';
+      return;
+    }
+    // load orders
+    try {
+      const orders = await fb.listOrders();
+      const container = document.getElementById('orders-list');
+      container.innerHTML = '';
+      if (!orders.length) container.innerHTML = '<p style="color:var(--muted)">No orders yet.</p>';
+      orders.slice().reverse().forEach(o => {
+        const el = document.createElement('div');
+        el.style.padding = '0.6rem';
+        el.style.borderRadius = '8px';
+        el.style.background = 'rgba(0,0,0,0.03)';
+        el.innerHTML = `<strong>${o.id}</strong><div style="color:var(--muted);font-size:0.9rem">${o.data.createdAt || ''}</div><div style="margin-top:0.4rem">${Object.keys(o.data.order.items || {}).length} items — ${o.data.order.method}</div>`;
+        container.appendChild(el);
+      });
+    } catch (e) {
+      console.error(e);
+      document.getElementById('orders-list').innerHTML = '<p style="color:var(--muted)">Failed loading orders.</p>';
+    }
+
+    // load local custom products (still stored in localStorage)
+    const custom = JSON.parse(localStorage.getItem('ikigai_custom_products_v1') || '{}');
+    const cl = document.getElementById('custom-list');
+    cl.innerHTML = '';
+    const keys = Object.keys(custom || {});
+    if (!keys.length) cl.innerHTML = '<p style="color:var(--muted)">No custom products.</p>';
+    keys.forEach(k => {
+      const p = custom[k];
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.alignItems = 'center';
+      row.innerHTML = `<div><strong>${p.id}</strong><div style="color:var(--muted)">${p.name}</div></div><div><button data-id="${p.id}" class="btn secondary-button admin-delete-local">Delete</button></div>`;
+      cl.appendChild(row);
+    });
+    cl.querySelectorAll('.admin-delete-local').forEach(b => {
+      b.addEventListener('click', () => {
+        const id = b.dataset.id;
+        if (!confirm('Delete custom product ' + id + '?')) return;
+        const c = JSON.parse(localStorage.getItem('ikigai_custom_products_v1') || '{}');
+        delete c[id];
+        localStorage.setItem('ikigai_custom_products_v1', JSON.stringify(c));
+        location.reload();
+      });
+    });
+  });
+
+  document.getElementById('signout').addEventListener('click', async () => {
+    try { await fb.signOutUser(); location.href = 'index.html'; } catch (e) { console.error(e); alert('Sign out failed'); }
+  });
+}
+init();
+</script>
+</body>
+</html>
