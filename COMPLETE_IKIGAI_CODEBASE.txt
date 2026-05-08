@@ -1,0 +1,863 @@
+################################################################################
+# IKIGAI COLLECTIVE - COMPLETE SOURCE CODE PACKAGE
+################################################################################
+#
+# This file contains ALL source code. Use the provided scripts to extract
+# into the proper directory structure.
+#
+# To set up:
+# 1. Run: ./setup-project.sh (macOS/Linux) or setup-project.bat (Windows)
+# 2. Run: npm install
+# 3. Configure .env.local
+# 4. Run: npm run dev
+#
+################################################################################
+
+========================================
+FILE: src/utils/constants.js
+========================================
+
+// IKIGAI Collective - Core Constants & Configuration
+
+export const BRAND = {
+  name: 'IKIGAI Collective',
+  tagline: 'Luxury Anime Streetwear',
+  description: 'World-class luxury anime streetwear fusion',
+  year: new Date().getFullYear(),
+};
+
+export const ROUTES = {
+  HOME: '/',
+  SHOP: '/shop',
+  PRODUCT_DETAIL: '/product/:id',
+  COLLECTIONS: '/collections',
+  ABOUT: '/about',
+  CONTACT: '/contact',
+  CART: '/cart',
+  CHECKOUT: '/checkout',
+  LOGIN: '/login',
+  REGISTER: '/register',
+  DASHBOARD: '/dashboard',
+  ADMIN: '/admin',
+  WISHLIST: '/wishlist',
+};
+
+export const CATEGORIES = [
+  'Oversized T-Shirts',
+  'Hoodies',
+  'Limited Drops',
+  'Jackets',
+  'Accessories',
+  'Collaborations',
+];
+
+export const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+export const SORT_OPTIONS = [
+  { label: 'Newest', value: 'newest' },
+  { label: 'Price: Low to High', value: 'price_asc' },
+  { label: 'Price: High to Low', value: 'price_desc' },
+  { label: 'Most Popular', value: 'popular' },
+];
+
+export const ORDER_STATUS = {
+  PENDING: 'pending',
+  PROCESSING: 'processing',
+  SHIPPED: 'shipped',
+  DELIVERED: 'delivered',
+};
+
+export const SHIPPING_METHODS = [
+  { id: 'standard', label: 'Standard (5-7 days)', price: 10 },
+  { id: 'express', label: 'Express (2-3 days)', price: 25 },
+  { id: 'overnight', label: 'Overnight', price: 50 },
+];
+
+export const TAX_RATE = 0.08;
+export const MIN_ORDER_FOR_FREE_SHIPPING = 100;
+
+export const SOCIAL_LINKS = [
+  { platform: 'Instagram', url: 'https://instagram.com/ikigai-collective' },
+  { platform: 'Twitter', url: 'https://twitter.com/ikigai-collective' },
+  { platform: 'TikTok', url: 'https://tiktok.com/@ikigai-collective' },
+  { platform: 'Discord', url: 'https://discord.gg/ikigai' },
+];
+
+========================================
+FILE: src/utils/formatters.js
+========================================
+
+export const formatPrice = (price) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(price);
+};
+
+export const formatDate = (date) => {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(date));
+};
+
+export const formatDateTime = (date) => {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(date));
+};
+
+export const slugify = (text) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-');
+};
+
+export const truncate = (text, length) => {
+  return text.length > length ? text.substring(0, length) + '...' : text;
+};
+
+========================================
+FILE: src/utils/validators.js
+========================================
+
+export const validateEmail = (email) => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+};
+
+export const validatePassword = (password) => {
+  return password.length >= 8;
+};
+
+export const validatePhoneNumber = (phone) => {
+  const regex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
+  return regex.test(phone);
+};
+
+export const validateCardNumber = (cardNumber) => {
+  const cleaned = cardNumber.replace(/\s/g, '');
+  return /^[0-9]{13,19}$/.test(cleaned);
+};
+
+========================================
+FILE: src/store/cartStore.js
+========================================
+
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+export const useCartStore = create(
+  persist(
+    (set, get) => ({
+      items: [],
+      
+      addItem: (product) => set((state) => {
+        const existing = state.items.find(item => 
+          item.id === product.id && item.variant === product.variant
+        );
+        
+        if (existing) {
+          return {
+            items: state.items.map(item =>
+              item.id === product.id && item.variant === product.variant
+                ? { ...item, quantity: item.quantity + (product.quantity || 1) }
+                : item
+            ),
+          };
+        }
+        
+        return {
+          items: [...state.items, { ...product, quantity: product.quantity || 1 }],
+        };
+      }),
+      
+      removeItem: (productId, variant) => set((state) => ({
+        items: state.items.filter(
+          item => !(item.id === productId && item.variant === variant)
+        ),
+      })),
+      
+      updateQuantity: (productId, variant, quantity) => set((state) => ({
+        items: state.items.map(item =>
+          item.id === productId && item.variant === variant
+            ? { ...item, quantity: Math.max(0, quantity) }
+            : item
+        ).filter(item => item.quantity > 0),
+      })),
+      
+      clearCart: () => set({ items: [] }),
+      
+      getTotal: () => {
+        const state = get();
+        return state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+      },
+      
+      getItemCount: () => {
+        const state = get();
+        return state.items.reduce((count, item) => count + item.quantity, 0);
+      },
+    }),
+    {
+      name: 'ikigai-cart',
+    }
+  )
+);
+
+========================================
+FILE: src/store/authStore.js
+========================================
+
+import { create } from 'zustand';
+
+export const useAuthStore = create((set) => ({
+  user: null,
+  isLoading: false,
+  isAuthenticated: false,
+  
+  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  setLoading: (isLoading) => set({ isLoading }),
+  setAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
+  
+  logout: () => set({ user: null, isAuthenticated: false }),
+  
+  updateProfile: (updates) => set((state) => ({
+    user: state.user ? { ...state.user, ...updates } : null,
+  })),
+}));
+
+========================================
+FILE: src/store/wishlistStore.js
+========================================
+
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+export const useWishlistStore = create(
+  persist(
+    (set, get) => ({
+      items: [],
+      
+      addItem: (productId) => set((state) => ({
+        items: state.items.includes(productId) 
+          ? state.items 
+          : [...state.items, productId],
+      })),
+      
+      removeItem: (productId) => set((state) => ({
+        items: state.items.filter(id => id !== productId),
+      })),
+      
+      toggleItem: (productId) => set((state) => ({
+        items: state.items.includes(productId)
+          ? state.items.filter(id => id !== productId)
+          : [...state.items, productId],
+      })),
+      
+      isWishlisted: (productId) => {
+        return get().items.includes(productId);
+      },
+      
+      clearWishlist: () => set({ items: [] }),
+    }),
+    {
+      name: 'ikigai-wishlist',
+    }
+  )
+);
+
+========================================
+FILE: src/services/firebase.js
+========================================
+
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+
+export default app;
+
+========================================
+FILE: src/services/auth.js
+========================================
+
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+} from 'firebase/auth';
+import { auth, db } from './firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+
+export const registerUser = async (email, password, displayName) => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    
+    await updateProfile(user, { displayName });
+    
+    await setDoc(doc(db, 'users', user.uid), {
+      email,
+      displayName,
+      createdAt: new Date().toISOString(),
+      role: 'user',
+      wishlist: [],
+    });
+    
+    return user;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const loginUser = async (email, password) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const logoutUser = async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getCurrentUser = () => {
+  return new Promise((resolve) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+};
+
+export const getUserProfile = async (uid) => {
+  try {
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? docSnap.data() : null;
+  } catch (error) {
+    throw error;
+  }
+};
+
+========================================
+FILE: src/services/stripe.js
+========================================
+
+import { loadStripe } from '@stripe/stripe-js';
+
+let stripePromise = null;
+
+export const getStripe = () => {
+  if (!stripePromise) {
+    stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+  }
+  return stripePromise;
+};
+
+export const createPaymentIntent = async (amount, email) => {
+  try {
+    const response = await fetch('/api/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, email }),
+    });
+    return response.json();
+  } catch (error) {
+    throw error;
+  }
+};
+
+========================================
+FILE: src/hooks/useAuth.js
+========================================
+
+import { useEffect, useState } from 'react';
+import { auth } from '@/services/firebase';
+import { useAuthStore } from '@/store/authStore';
+
+export const useAuth = () => {
+  const [loading, setLoading] = useState(true);
+  const { user, isAuthenticated, setUser, setAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setAuthenticated(true);
+      } else {
+        setUser(null);
+        setAuthenticated(false);
+      }
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, [setUser, setAuthenticated]);
+
+  return { user, isAuthenticated, loading };
+};
+
+========================================
+FILE: src/hooks/useCart.js
+========================================
+
+import { useCartStore } from '@/store/cartStore';
+
+export const useCart = () => {
+  const {
+    items,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    getTotal,
+    getItemCount,
+  } = useCartStore();
+
+  return {
+    items,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    total: getTotal(),
+    itemCount: getItemCount(),
+  };
+};
+
+========================================
+FILE: src/hooks/useWishlist.js
+========================================
+
+import { useWishlistStore } from '@/store/wishlistStore';
+
+export const useWishlist = () => {
+  const {
+    items,
+    addItem,
+    removeItem,
+    toggleItem,
+    isWishlisted,
+    clearWishlist,
+  } = useWishlistStore();
+
+  return {
+    items,
+    addItem,
+    removeItem,
+    toggleItem,
+    isWishlisted,
+    clearWishlist,
+    count: items.length,
+  };
+};
+
+========================================
+FILE: src/components/common/Button.jsx
+========================================
+
+import React from 'react';
+import { motion } from 'framer-motion';
+
+export const Button = ({
+  children,
+  variant = 'primary',
+  size = 'md',
+  className = '',
+  ...props
+}) => {
+  const baseClasses =
+    'font-poppins font-semibold rounded-lg transition-all duration-300 btn-premium';
+
+  const variants = {
+    primary:
+      'bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/50',
+    secondary: 'bg-gray-800 hover:bg-gray-700 text-white border border-gray-600',
+    outline: 'border-2 border-blue-500 text-blue-500 hover:bg-blue-500/10',
+    danger: 'bg-red-500 hover:bg-red-600 text-white',
+  };
+
+  const sizes = {
+    sm: 'px-4 py-2 text-sm',
+    md: 'px-6 py-3 text-base',
+    lg: 'px-8 py-4 text-lg',
+  };
+
+  return (
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
+      {...props}
+    >
+      {children}
+    </motion.button>
+  );
+};
+
+========================================
+FILE: src/components/common/Modal.jsx
+========================================
+
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+export const Modal = ({ isOpen, onClose, title, children }) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-gray-900 rounded-xl p-8 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-2xl font-bold mb-4">{title}</h2>
+            {children}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+========================================
+FILE: src/components/layout/Navbar.jsx
+========================================
+
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/hooks/useCart';
+import { BRAND, ROUTES } from '@/utils/constants';
+
+export const Navbar = () => {
+  const { isAuthenticated, user } = useAuth();
+  const { itemCount } = useCart();
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <nav className="sticky top-0 z-40 bg-black/95 backdrop-blur-lg border-b border-gray-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link to={ROUTES.HOME} className="flex items-center space-x-2">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-pink-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">Ⅰ</span>
+            </div>
+            <span className="text-xl font-bold hidden sm:inline">{BRAND.name}</span>
+          </Link>
+
+          {/* Desktop Menu */}
+          <div className="hidden md:flex space-x-8">
+            <Link to={ROUTES.SHOP} className="hover:text-blue-400 transition">
+              Shop
+            </Link>
+            <Link to={ROUTES.COLLECTIONS} className="hover:text-blue-400 transition">
+              Collections
+            </Link>
+            <Link to={ROUTES.ABOUT} className="hover:text-blue-400 transition">
+              About
+            </Link>
+          </div>
+
+          {/* Right Items */}
+          <div className="flex items-center space-x-4">
+            {/* Wishlist */}
+            <Link to={ROUTES.WISHLIST} className="hover:text-blue-400 transition">
+              ❤️
+            </Link>
+
+            {/* Cart */}
+            <Link to={ROUTES.CART} className="relative hover:text-blue-400 transition">
+              🛒
+              {itemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {itemCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Auth */}
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-2">
+                <img
+                  src={user?.photoURL || '👤'}
+                  alt={user?.displayName}
+                  className="w-8 h-8 rounded-full"
+                />
+                <Link to={ROUTES.DASHBOARD} className="hover:text-blue-400 transition">
+                  {user?.displayName}
+                </Link>
+              </div>
+            ) : (
+              <Link
+                to={ROUTES.LOGIN}
+                className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg transition"
+              >
+                Login
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+========================================
+FILE: src/components/home/Hero.jsx
+========================================
+
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/common/Button';
+import { ROUTES } from '@/utils/constants';
+import { Link } from 'react-router-dom';
+
+export const Hero = () => {
+  return (
+    <section className="relative h-screen flex items-center justify-center overflow-hidden bg-black">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent" />
+
+      <div className="relative z-10 max-w-4xl mx-auto text-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <h1 className="text-5xl md:text-7xl font-black mb-6 text-gradient">
+            {/* eslint-disable-next-line react/no-unescaped-entities */}
+            IKIGAI Collective
+          </h1>
+          <p className="text-xl md:text-2xl text-gray-300 mb-8">
+            Luxury Anime Streetwear Fusion
+          </p>
+          <p className="text-gray-400 mb-12 max-w-2xl mx-auto">
+            Elevate your style with premium anime-inspired streetwear collections.
+            Limited drops. Exclusive designs. Pure luxury.
+          </p>
+
+          <div className="flex gap-4 justify-center">
+            <Link to={ROUTES.SHOP}>
+              <Button variant="primary" size="lg">
+                Explore Collection
+              </Button>
+            </Link>
+            <Link to={ROUTES.COLLECTIONS}>
+              <Button variant="secondary" size="lg">
+                View Collections
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+========================================
+FILE: src/components/products/ProductCard.jsx
+========================================
+
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { formatPrice } from '@/utils/formatters';
+import { useWishlist } from '@/hooks/useWishlist';
+
+export const ProductCard = ({ product }) => {
+  const { isWishlisted, toggleItem } = useWishlist();
+  const [imageLoaded, setImageLoaded] = React.useState(false);
+
+  return (
+    <motion.div
+      whileHover={{ y: -8 }}
+      className="card-luxury overflow-hidden group"
+    >
+      <Link to={`/product/${product.id}`}>
+        <div className="relative h-64 overflow-hidden bg-gray-900">
+          <img
+            src={product.images?.[0] || '/placeholder.jpg'}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            onLoad={() => setImageLoaded(true)}
+          />
+          {!imageLoaded && <div className="loading-spinner" />}
+
+          {product.salePrice && (
+            <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-lg text-sm font-bold">
+              SALE
+            </div>
+          )}
+        </div>
+      </Link>
+
+      <div className="p-4">
+        <h3 className="font-bold text-lg mb-2 truncate">{product.name}</h3>
+        <p className="text-gray-400 text-sm mb-4 line-clamp-2">{product.description}</p>
+
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="font-bold text-lg">
+              {formatPrice(product.salePrice || product.price)}
+            </div>
+            {product.salePrice && (
+              <div className="text-gray-500 line-through text-sm">
+                {formatPrice(product.price)}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => toggleItem(product.id)}
+            className="text-2xl hover:scale-110 transition"
+          >
+            {isWishlisted(product.id) ? '❤️' : '🤍'}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+========================================
+FILE: src/App.jsx
+========================================
+
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
+import { Home } from '@/pages/Home';
+import { Shop } from '@/pages/Shop';
+import { ProductDetails } from '@/pages/ProductDetails';
+import { Cart } from '@/pages/Cart';
+import { Checkout } from '@/pages/Checkout';
+import { Login } from '@/pages/Login';
+import { NotFound } from '@/pages/NotFound';
+import { Toaster } from 'react-hot-toast';
+import '@/index.css';
+
+export default function App() {
+  return (
+    <>
+      <Router>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/product/:id" element={<ProductDetails />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Footer />
+      </Router>
+      <Toaster position="top-right" />
+    </>
+  );
+}
+
+========================================
+FILE: src/pages/Home.jsx
+========================================
+
+import React from 'react';
+import { Hero } from '@/components/home/Hero';
+import { FeaturedCollections } from '@/components/home/FeaturedCollections';
+import { TrendingProducts } from '@/components/home/TrendingProducts';
+import { Newsletter } from '@/components/home/Newsletter';
+
+export const Home = () => {
+  return (
+    <div>
+      <Hero />
+      <FeaturedCollections />
+      <TrendingProducts />
+      <Newsletter />
+    </div>
+  );
+};
+
+========================================
+FILE: src/pages/NotFound.jsx
+========================================
+
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/common/Button';
+import { ROUTES } from '@/utils/constants';
+
+export const NotFound = () => {
+  return (
+    <div className="h-screen flex flex-col items-center justify-center">
+      <h1 className="text-6xl font-black mb-4">404</h1>
+      <p className="text-2xl mb-8">Page Not Found</p>
+      <Link to={ROUTES.HOME}>
+        <Button>Back to Home</Button>
+      </Link>
+    </div>
+  );
+};
+
+========================================
+FILE: src/main.jsx
+========================================
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
+
+################################################################################
+# END OF SOURCE CODE
+################################################################################
